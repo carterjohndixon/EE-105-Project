@@ -1,0 +1,5 @@
+# Unzipped dataset (shipped as data-zip.zip instead)
+/data/
+
+# Dataset archive: attached to a GitHub Release, too big for git (>100 MB)
+/data-zip.zip
