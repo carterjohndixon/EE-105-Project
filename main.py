@@ -47,9 +47,14 @@ def print_result(user_move, computer_move, result):
         print("It's a tie!")
  
  
-def print_score(score):
-    """Print the current score."""
-    print(f"Score - You: {score['user']}  Computer: {score['computer']}  Ties: {score['tie']}\n")
+def print_statistics(score, title="Statistics"):
+    """Print the running statistics: wins for each side, ties, rounds played and win rate."""
+    rounds = score["user"] + score["computer"] + score["tie"]
+    win_rate = (score["user"] / rounds * 100) if rounds else 0.0
+
+    print(f"--- {title} ---")
+    print(f"You: {score['user']} | Computer: {score['computer']} | Ties: {score['tie']}")
+    print(f"Rounds played: {rounds} | Your win rate: {win_rate:.1f}%\n")
  
  
 def main():
@@ -69,17 +74,17 @@ def main():
         # 2. Play one round: computer picks a move, then decide the winner
         computer_move, result = game.play_round(user_move)
  
-        # 3. Update and show the result and score
+        # 3. Update and show the result and statistics
         score[result] += 1
         print_result(user_move, computer_move, result)
-        print_score(score)
+        print_statistics(score)
  
         # 4. Ask whether to keep playing
         playing = ask_play_again()
         print()
  
-    print("Thanks for playing! Final score:")
-    print_score(score)
+    print("Thanks for playing!")
+    print_statistics(score, title="Final Statistics")
  
  
 if __name__ == "__main__":
