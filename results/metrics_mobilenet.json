@@ -1,0 +1,27 @@
+{
+ "name": "MobileNetV2",
+ "test_acc": 0.9489247311827957,
+ "wrong": 19,
+ "n_test": 372,
+ "best_val_acc": 0.9393939393939394,
+ "epochs": 8,
+ "seconds_per_epoch": 24.098947942256927,
+ "ms_per_image": 7.664709459677263,
+ "params": 2388356,
+ "params_trained_at_start": 164484,
+ "per_class": {
+  "paper": {
+   "precision": 0.9133858267716536,
+   "recall": 0.9354838709677419
+  },
+  "rock": {
+   "precision": 0.9393939393939394,
+   "recall": 1.0
+  },
+  "scissors": {
+   "precision": 1.0,
+   "recall": 0.9112903225806451
+  }
+ },
+ "device": "cuda"
+}
