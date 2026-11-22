@@ -1,78 +1,86 @@
-import asyncio
-import json
-import sys
-import traceback
 
-sys.path.insert(0, "..")          # the ee105 folder sits next to this project folder
-
-import websockets
-
-from game import cpu_move, judge, explain, read_player
-
-KIND = "cnn"                      # "cnn" (smallCNN) or "mobilenet", as trained
-WEIGHTS = "rps_cnn.pt"            # file saved with model.save(...)
-HOST, PORT = "localhost", 8765
-COUNTDOWN = (3, 2, 1)
-STEP = 0.7                        # seconds per countdown number
-
-clients = set()
-busy = False
-
-
-async def send(msg):
-    websockets.broadcast(clients, json.dumps(msg))
-
-
-async def play(cam, model):
-    """One round: the computer picks first, countdown, then the camera reads the player."""
-    global busy
-    if busy:
-        return
-    busy = True
-    try:
-        cpu = cpu_move()                                   # chosen BEFORE the player shows a hand
-        for n in COUNTDOWN:
-            await send({"state": "countdown", "n": n})
-            await asyncio.sleep(STEP)
-        await send({"state": "go"})
-        player = await asyncio.to_thread(read_player, model, cam.snap)
-        if player is None:
-            await send({"state": "none"})
-            return
-        await send({"state": "result", "player": player, "cpu": cpu,
-                    "result": judge(player, cpu), "rule": explain(player, cpu)})
-    except Exception as e:                                 # keep the server alive, tell the page
-        traceback.print_exc()
-        await send({"state": "error", "message": str(e)})
-    finally:
-        busy = False
-
-
-async def main():
-    import ee105
-    from model import load
-
-    sim = "--sim" in sys.argv
-    cam = ee105.connect_camera(simulate=True if sim else None)
-    model = load(KIND, WEIGHTS)
-
-    async def handler(ws):
-        clients.add(ws)
-        await ws.send(json.dumps({"state": "ready"}))
-        try:
-            async for m in ws:
-                if str(m).strip() == "start":
-                    await play(cam, model)
-        finally:
-            clients.discard(ws)
-
-    async with websockets.serve(handler, HOST, PORT):
-        print(f"Ready: ws://{HOST}:{PORT}   (open rps.html in the browser, Ctrl+C to stop)")
-        await asyncio.Future()
-
-
+"""
+main.py - Entry point for the Rock Paper Scissors game
+ 
+Connects the camera model (model.py) with the game logic (game.py):
+  1. Get the user's move (from the camera, placeholder for now)
+  2. Play one round against the computer
+  3. Show the result and score
+  4. Ask the user whether to play again
+"""
+ 
+import game
+import model   # TODO: uncomment once the camera model is ready
+ 
+ 
+def get_user_move():
+    """
+    [PLACEHOLDER] Get the user's move.
+ 
+    TODO: Replace with the camera model once it's ready, e.g.:
+        return model.detect_gesture()   # returns "rock" / "paper" / "scissors", or None if detection fails
+ 
+    For now, read from the keyboard so the game can be tested.
+    """
+    return input("Enter your move (rock / paper / scissors): ").strip().lower()
+ 
+ 
+def ask_play_again():
+    """Ask the user whether to play another round. Returns True or False."""
+    while True:
+        answer = input("Play again? (y/n): ").strip().lower()
+        if answer in ("y", "yes"):
+            return True
+        if answer in ("n", "no"):
+            return False
+        print("Please enter y or n.")
+ 
+ 
+def print_result(user_move, computer_move, result):
+    """Print the moves and who won this round."""
+    print(f"You played: {user_move}  |  Computer played: {computer_move}")
+    if result == "user":
+        print("You win!")
+    elif result == "computer":
+        print("Computer wins!")
+    else:
+        print("It's a tie!")
+ 
+ 
+def print_score(score):
+    """Print the current score."""
+    print(f"Score - You: {score['user']}  Computer: {score['computer']}  Ties: {score['tie']}\n")
+ 
+ 
+def main():
+    score = {"user": 0, "computer": 0, "tie": 0}
+    print("=== Rock Paper Scissors ===\n")
+ 
+    playing = True
+    while playing:
+        # 1. Get the user's move (placeholder until the camera model is ready)
+        user_move = get_user_move()
+ 
+        # If the move is not valid (e.g. camera could not detect a gesture), redo this round
+        if not game.is_valid_move(user_move):
+            print("No valid gesture detected, please try again.\n")
+            continue
+ 
+        # 2. Play one round: computer picks a move, then decide the winner
+        computer_move, result = game.play_round(user_move)
+ 
+        # 3. Update and show the result and score
+        score[result] += 1
+        print_result(user_move, computer_move, result)
+        print_score(score)
+ 
+        # 4. Ask whether to keep playing
+        playing = ask_play_again()
+        print()
+ 
+    print("Thanks for playing! Final score:")
+    print_score(score)
+ 
+ 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        pass
+    main()
