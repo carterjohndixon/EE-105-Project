@@ -107,8 +107,14 @@ def make_transform(kind, train, camera=False):
     if train:
         steps += [transforms.RandomResizedCrop(size, scale=(0.8, 1.0)),
                   transforms.RandomRotation(30, fill=255),   # white corners, like the backgrounds
-                  transforms.RandomHorizontalFlip(),
-                  transforms.ColorJitter(brightness=0.4, contrast=0.4)]
+                  transforms.RandomHorizontalFlip()]
+        if camera:
+            # our pictures come from a few recording sessions; strong brightness/contrast changes and
+            # some blur keep the model from recognizing a session's lighting instead of the hand
+            steps += [transforms.ColorJitter(brightness=0.6, contrast=0.6),
+                      transforms.RandomApply([transforms.GaussianBlur(5, sigma=(0.1, 2.0))], p=0.3)]
+        else:
+            steps += [transforms.ColorJitter(brightness=0.4, contrast=0.4)]
     else:
         steps += [transforms.Resize((size, size))]
     steps.append(transforms.ToTensor())
