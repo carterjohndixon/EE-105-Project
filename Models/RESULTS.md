@@ -22,27 +22,27 @@ Our camera test: our own OV7675 pictures in `data/test` (never used for training
 
 ## Training curves, both models
 
-![Comparison](figures/comparison_curves.png)
+![Comparison](figures/comparison_curves.png?v=823c4619)
 
 ## Small CNN
 
-![Small CNN training curves](figures/cnn_training_curves.png)
+![Small CNN training curves](figures/cnn_training_curves.png?v=46b4f6fc)
 
-![Small CNN confusion matrix](figures/cnn_confusion.png)
+![Small CNN confusion matrix](figures/cnn_confusion.png?v=4d8cb598)
 
-![Small CNN mistakes](figures/cnn_mistakes.png)
+![Small CNN mistakes](figures/cnn_mistakes.png?v=f516f1c8)
 
-![Small CNN on our camera pictures](figures/cnn_own_confusion.png)
+![Small CNN on our camera pictures](figures/cnn_own_confusion.png?v=189760fd)
 
 ## MobileNetV2
 
-![MobileNetV2 training curves](figures/mobilenet_training_curves.png)
+![MobileNetV2 training curves](figures/mobilenet_training_curves.png?v=8c2f3c3e)
 
-![MobileNetV2 confusion matrix](figures/mobilenet_confusion.png)
+![MobileNetV2 confusion matrix](figures/mobilenet_confusion.png?v=4a36016d)
 
-![MobileNetV2 mistakes](figures/mobilenet_mistakes.png)
+![MobileNetV2 mistakes](figures/mobilenet_mistakes.png?v=9af44969)
 
-![MobileNetV2 on our camera pictures](figures/mobilenet_own_confusion.png)
+![MobileNetV2 on our camera pictures](figures/mobilenet_own_confusion.png?v=be3cda12)
 
 ## Conclusion
 
