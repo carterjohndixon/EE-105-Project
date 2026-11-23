@@ -10,19 +10,18 @@ Connects the camera model (model.py) with the game logic (game.py):
 """
  
 import game
-import model   # TODO: uncomment once the camera model is ready
- 
+# import model   # TODO: uncomment once the camera model is ready
+import model
  
 def get_user_move():
     """
-    [PLACEHOLDER] Get the user's move.
- 
-    TODO: Replace with the camera model once it's ready, e.g.:
-        return model.detect_gesture()   # returns "rock" / "paper" / "scissors", or None if detection fails
- 
-    For now, read from the keyboard so the game can be tested.
+    Get the user's move from the camera model.
     """
-    return input("Enter your move (rock / paper / scissors): ").strip().lower()
+    # return input("Enter your move (rock / paper / scissors): ").strip().lower() # Place holder for no camera
+    key = input ("Show your gesture to the camera and press Enter (or type q + Enter to quit): ")
+    if key.strip().lower() == "q":
+        return "quit"
+    return model.detect_gesture()  # returns "rock" / "paper" / "scissors", or None if detection fails
  
  
 def ask_play_again():
@@ -60,32 +59,48 @@ def print_statistics(score, title="Statistics"):
 def main():
     score = {"user": 0, "computer": 0, "tie": 0}
     print("=== Rock Paper Scissors ===\n")
- 
+
+    print("Loading the model and connecting to the camera...")
+
+    try:
+        model.load_best()  # Load the best model (weights) for the camera
+        model.open_camera()  # Connect to the camera (raises RuntimeError if not found)
+    except (RuntimeError, FileNotFoundError) as e:
+        print(f"Can't start the game: {e}")
+        return
+
     playing = True
-    while playing:
-        # 1. Get the user's move (placeholder until the camera model is ready)
-        user_move = get_user_move()
- 
-        # If the move is not valid (e.g. camera could not detect a gesture), redo this round
-        if not game.is_valid_move(user_move):
-            print("No valid gesture detected, please try again.\n")
-            continue
- 
-        # 2. Play one round: computer picks a move, then decide the winner
-        computer_move, result = game.play_round(user_move)
- 
-        # 3. Update and show the result and statistics
-        score[result] += 1
-        print_result(user_move, computer_move, result)
-        print_statistics(score)
- 
-        # 4. Ask whether to keep playing
-        playing = ask_play_again()
-        print()
- 
-    print("Thanks for playing!")
-    print_statistics(score, title="Final Statistics")
- 
- 
+    try:
+        while playing:
+            # 1. Get the user's move from the camera
+            user_move = get_user_move()
+            if user_move == "quit":
+                break  # Exit the game if the user wants to quit
+    
+            # If the move is not valid (e.g. camera could not detect a gesture), redo this round
+            if not game.is_valid_move(user_move):
+                print("No valid gesture detected, please try again.\n")
+                continue
+    
+            # 2. Play one round: computer picks a move, then decide the winner
+            computer_move, result = game.play_round(user_move)
+    
+            # 3. Update and show the result and statistics
+            score[result] += 1
+            print_result(user_move, computer_move, result)
+            print_statistics(score)
+    
+            # 4. Ask whether to keep playing
+            playing = ask_play_again()
+            print()
+    
+        print("Thanks for playing!")
+        print_statistics(score, title="Final Statistics")
+    except KeyboardInterrupt:
+        print("\n Game stopped.")
+    finally:
+        model.close_camera()  # Close the camera when the game ends
+
+
 if __name__ == "__main__":
     main()

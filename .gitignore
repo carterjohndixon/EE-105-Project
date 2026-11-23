@@ -6,3 +6,5 @@
 
 # Model weights
 /weights/
+# Our camera pictures archive: attached to a GitHub Release
+/data-ours.zip

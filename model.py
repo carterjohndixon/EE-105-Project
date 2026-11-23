@@ -64,14 +64,20 @@ def load(kind, path, device="cpu"):
 #  Data, training and evaluation helpers (used by results.ipynb)
 #  Paste this below load(). Nothing here runs on import.
 # =====================================================================
+import json
 import time
 from pathlib import Path
 
 import numpy as np
 from PIL import Image
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, ConcatDataset, Subset
 
 KAGGLE = Path(__file__).resolve().parent / "data" / "kaggle"
+OURS = KAGGLE.parent / "ours"          # our OV7675 pictures for training (capture.py)
+OWN_TEST = KAGGLE.parent / "test"      # our OV7675 pictures for testing only (capture.py, T key)
+OURS_VAL_FRACTION = 0.15               # newest 15% of each class in data/ours checks progress (validation)
+OURS_REPEAT = 3                        # use our training pictures 3x per epoch: there are far fewer than Kaggle's
+CAMERA_CROP = 0.8                      # the center square the game uses (predict_frame's crop)
 IMAGENET_MEAN, IMAGENET_STD = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
 
 # input size and channels per model: the CNN sees 1-channel gray, MobileNet 3 copies of gray
@@ -79,10 +85,25 @@ SETTINGS = {"cnn": {"size": 96, "channels": 1},
             "mobilenet": {"size": 224, "channels": 3}}
 
 
-def make_transform(kind, train):
-    """Grayscale (like the camera), resized; random changes only when training."""
+class _CenterSquare:
+    """Crop the center square the game looks at (same as predict_frame), for 4:3 camera pictures."""
+
+    def __init__(self, crop=CAMERA_CROP):
+        self.crop = crop
+
+    def __call__(self, img):
+        w, h = img.size
+        s = int(round(min(w, h) * self.crop))
+        x0, y0 = (w - s) // 2, (h - s) // 2
+        return img.crop((x0, y0, x0 + s, y0 + s))
+
+
+def make_transform(kind, train, camera=False):
+    """Grayscale (like the camera), resized; random changes only when training.
+    camera=True: a 160 x 120 camera picture, first cropped to the square the game uses."""
     size, ch = SETTINGS[kind]["size"], SETTINGS[kind]["channels"]
-    steps = [transforms.Grayscale(num_output_channels=ch)]
+    steps = [_CenterSquare()] if camera else []
+    steps += [transforms.Grayscale(num_output_channels=ch)]
     if train:
         steps += [transforms.RandomResizedCrop(size, scale=(0.8, 1.0)),
                   transforms.RandomRotation(30, fill=255),   # white corners, like the backgrounds
@@ -109,11 +130,51 @@ class _ToClasses:
         return self.lookup[i]
 
 
-def make_dataset(kind, split, root=KAGGLE):
-    """split: 'train', 'validation' or 'test' (a folder of class subfolders)."""
+def _camera_folder(folder, kind, train):
+    """ImageFolder of camera pictures (empty class folders allowed), or None if there are none."""
+    if not Path(folder).exists():
+        return None
+    ds = datasets.ImageFolder(folder, transform=make_transform(kind, train, camera=True), allow_empty=True)
+    if len(ds) == 0:
+        return None
+    ds.target_transform = _ToClasses(ds.classes)
+    return ds
+
+
+def ours_part(kind, part):
+    """Our training pictures (data/ours), split by capture time: the newest OURS_VAL_FRACTION of
+    each class for 'validation', the rest for 'train'. Splitting by time instead of at random keeps
+    near-identical neighbouring frames on the same side. None if data/ours has no pictures."""
+    ds = _camera_folder(OURS, kind, train=(part == "train"))
+    if ds is None:
+        return None
+    by_class = {}
+    for i, (path, y) in enumerate(ds.samples):       # file names start with the capture time
+        by_class.setdefault(y, []).append(i)
+    keep = []
+    for idx in by_class.values():
+        idx = sorted(idx, key=lambda i: Path(ds.samples[i][0]).name)
+        n_val = int(round(len(idx) * OURS_VAL_FRACTION)) if len(idx) >= 7 else 0
+        keep += idx[len(idx) - n_val:] if part == "validation" else idx[:len(idx) - n_val]
+    return Subset(ds, keep) if keep else None
+
+
+def make_own_test_dataset(kind):
+    """Our test pictures (data/test), never used for training. None if there are none."""
+    return _camera_folder(OWN_TEST, kind, train=False)
+
+
+def make_dataset(kind, split, root=KAGGLE, use_ours=True):
+    """split: 'train', 'validation' or 'test'.
+    'train' and 'validation' combine Kaggle with our camera pictures in data/ours (if any);
+    'test' is Kaggle's test folder only (our test pictures: make_own_test_dataset)."""
     train = split == "train"
     ds = datasets.ImageFolder(Path(root) / split, transform=make_transform(kind, train))
     ds.target_transform = _ToClasses(ds.classes)
+    if use_ours and split in ("train", "validation"):
+        ours = ours_part(kind, split)
+        if ours is not None:
+            ds = ConcatDataset([ds] + [ours] * (OURS_REPEAT if train else 1))
     return ds
 
 
@@ -214,6 +275,80 @@ def predict_frame(model, kind, img, crop=0.8, device="cpu"):
     with torch.no_grad():
         p = torch.softmax(model(x), 1)[0].cpu().numpy()
     return CLASSES[int(p.argmax())], p
+
+
+# =====================================================================
+#  The game's model: the best trained model from results/, and the camera
+# =====================================================================
+ROOT = Path(__file__).resolve().parent
+_best = None            # (kind, model) once loaded
+_camera = None          # ee105 camera once connected
+
+
+def best_kind():
+    """The model with the highest accuracy in results/metrics_*.json that has weights in weights/.
+    Uses the accuracy on our own camera pictures (data/test) when every model has one, since that is
+    what the game sees; otherwise the Kaggle test accuracy. Falls back to MobileNetV2 (the model chosen
+    in Models/CONCLUSION.md) if no results are found."""
+    metrics = {}
+    for kind in SETTINGS:
+        m, weights = ROOT / "results" / f"metrics_{kind}.json", ROOT / "weights" / f"{kind}.pt"
+        if m.exists() and weights.exists():
+            metrics[kind] = json.loads(m.read_text())
+    if not metrics:
+        return "mobilenet"
+    key = "own_test_acc" if all("own_test_acc" in m for m in metrics.values()) else "test_acc"
+    return max(metrics, key=lambda k: metrics[k][key])
+
+
+def load_best(device="cpu"):
+    """Load the best model once (later calls reuse it). Returns (kind, model)."""
+    global _best
+    if _best is None:
+        kind = best_kind()
+        weights = ROOT / "weights" / f"{kind}.pt"
+        if not weights.exists():
+            raise FileNotFoundError(f"{weights} is missing. Download it from the weights-v1 release: "
+                                    "gh release download weights-v1 --dir weights")
+        _best = (kind, load(kind, weights, device))
+        print(f"Using {kind} ({weights.name})")
+    return _best
+
+def open_camera():
+    """Connect the camera (once). If the camera isn't found it raises a RuntimeError."""
+    global _camera
+    if _camera is None:
+        import ee105                      # imported here so model.py works without the camera
+        _camera = ee105.connect_camera()
+    return _camera
+
+def detect_gesture(frames=3, min_confidence=0.45, device="cpu"):
+    """Take `frames` camera pictures and return the gesture most of them show:
+    "rock", "paper" or "scissors". Returns None if no hand is seen, the model is unsure
+    (below min_confidence), or the frames disagree (no majority).
+    min_confidence 0.45: on the Kaggle test set MobileNetV2 answers 83% of pictures at that
+    confidence and 97% of those answers are right (training used label smoothing, so even
+    correct answers are rarely above 0.8)."""
+    global _camera
+    kind, net = load_best(device)
+    open_camera()  # raises RuntimeError if the camera isn't found
+    votes = []
+    for _ in range(frames):
+        label, p = predict_frame(net, kind, _camera.snap(160, 120), device=device)
+        if label != "none" and p.max() >= min_confidence:
+            votes.append(label)
+    if not votes:
+        return None
+    best = max(set(votes), key=votes.count)
+    return best if votes.count(best) > frames // 2 else None
+
+
+def close_camera():
+    """Release the camera (call when the game ends)."""
+    global _camera
+    if _camera is not None:
+        _camera.close()
+        _camera = None
 
 
 if __name__ == "__main__":
