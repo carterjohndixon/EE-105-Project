@@ -1,27 +1,29 @@
 {
  "name": "MobileNetV2",
- "test_acc": 0.9489247311827957,
- "wrong": 19,
+ "test_acc": 0.8655913978494624,
+ "wrong": 50,
  "n_test": 372,
- "best_val_acc": 0.9393939393939394,
+ "best_val_acc": 0.9392712550607287,
  "epochs": 8,
- "seconds_per_epoch": 24.098947942256927,
- "ms_per_image": 7.664709459677263,
+ "seconds_per_epoch": 52.26117464900017,
+ "ms_per_image": 7.627419631720259,
  "params": 2388356,
  "params_trained_at_start": 164484,
  "per_class": {
   "paper": {
-   "precision": 0.9133858267716536,
-   "recall": 0.9354838709677419
+   "precision": 1.0,
+   "recall": 0.6209677419354839
   },
   "rock": {
-   "precision": 0.9393939393939394,
-   "recall": 1.0
+   "precision": 0.9918032786885246,
+   "recall": 0.9758064516129032
   },
   "scissors": {
-   "precision": 1.0,
-   "recall": 0.9112903225806451
+   "precision": 0.7167630057803468,
+   "recall": 1.0
   }
  },
- "device": "cuda"
+ "device": "cuda",
+ "own_test_acc": 0.9525862068965517,
+ "own_n_test": 232
 }

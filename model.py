@@ -293,8 +293,8 @@ _camera = None          # ee105 camera once connected
 
 def best_kind():
     """The model with the highest accuracy in results/metrics_*.json that has weights in weights/.
-    Uses the accuracy on our own camera pictures (data/test) when every model has one, since that is
-    what the game sees; otherwise the Kaggle test accuracy. Falls back to MobileNetV2 (the model chosen
+    Prefers models tested on our own camera pictures (data/test), ranked by that accuracy, since that is
+    what the game sees; only if none was, the Kaggle test accuracy. Falls back to MobileNetV2 (the model chosen
     in Models/CONCLUSION.md) if no results are found."""
     metrics = {}
     for kind in SETTINGS:
@@ -303,8 +303,10 @@ def best_kind():
             metrics[kind] = json.loads(m.read_text())
     if not metrics:
         return "mobilenet"
-    key = "own_test_acc" if all("own_test_acc" in m for m in metrics.values()) else "test_acc"
-    return max(metrics, key=lambda k: metrics[k][key])
+    tested = {k: m for k, m in metrics.items() if "own_test_acc" in m}
+    if tested:        # a model tested on our camera always beats one that never was
+        return max(tested, key=lambda k: tested[k]["own_test_acc"])
+    return max(metrics, key=lambda k: metrics[k]["test_acc"])
 
 
 def load_best(device="cpu"):
