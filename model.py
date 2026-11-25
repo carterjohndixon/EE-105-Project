@@ -62,7 +62,6 @@ def load(kind, path, device="cpu"):
 
 # =====================================================================
 #  Data, training and evaluation helpers (used by results.ipynb)
-#  Paste this below load(). Nothing here runs on import.
 # =====================================================================
 import json
 import time
@@ -288,7 +287,7 @@ def predict_frame(model, kind, img, crop=0.8, device="cpu"):
 # =====================================================================
 ROOT = Path(__file__).resolve().parent
 _best = None            # (kind, model) once loaded
-_camera = None          # ee105 camera once connected
+_camera = None          # board or webcam camera once connected (see webcam.open_camera)
 
 
 def best_kind():
@@ -323,11 +322,12 @@ def load_best(device="cpu"):
     return _best
 
 def open_camera():
-    """Connect the camera (once). If the camera isn't found it raises a RuntimeError."""
+    """Connect the camera (once): the board by default, or the webcam with --webcam / RPS_CAMERA=webcam.
+    If the camera isn't found it raises a RuntimeError."""
     global _camera
     if _camera is None:
-        import ee105                      # imported here so model.py works without the camera
-        _camera = ee105.connect_camera()
+        import webcam                     # imported here so model.py works without a camera
+        _camera = webcam.open_camera()
     return _camera
 
 def detect_gesture(frames=3, min_confidence=0.45, device="cpu"):

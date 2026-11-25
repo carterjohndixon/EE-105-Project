@@ -14,7 +14,11 @@ Keys (click the window first):
   T            switch between data/ours and data/test
   Q or Esc     quit
 
-Run:  python capture.py
+Saved pictures are blanked outside the yellow box (the model only looks inside it), so faces and people
+in the background are not stored. Webcam pictures are named webcam_<class>_<time>.png.
+
+Run:  python capture.py            (EE 105 board camera)
+      python capture.py --webcam   (the computer's webcam)
 """
 
 import threading
@@ -25,6 +29,8 @@ import tkinter as tk
 
 from PIL import Image, ImageDraw, ImageFont, ImageTk
 
+from webcam import Webcam, blank_outside_box, open_camera
+
 ROOT = Path(__file__).resolve().parent
 TARGETS = {"ours": ROOT / "data" / "ours", "test": ROOT / "data" / "test"}
 CLASSES = {"r": "rock", "p": "paper", "s": "scissors", "n": "none"}
@@ -32,6 +38,8 @@ WIDTH, HEIGHT = 160, 120   # what the game uses (model.detect_gesture / game_win
 SCALE = 3
 CROP = 0.8                 # the center square the model looks at (see model.predict_frame)
 GOAL = {"ours": 150, "test": 30}   # suggested pictures per class
+MIN_SAVE_GAP_S = 0.25      # while recording, save at most 4 pictures per second (a webcam sends ~30,
+                           # nearly identical ones; the board's ~2.5 per second are all saved)
 
 RED, GRAY = "#c62828", "#555555"
 
@@ -57,8 +65,10 @@ class Camera(threading.Thread):
 
 
 class CaptureWindow:
-    def __init__(self, root, camera):
+    def __init__(self, root, camera, prefix=""):
         self.root, self.camera = root, camera
+        self.prefix = prefix         # "webcam_" for webcam pictures, "" for the board
+        self.last_save = 0.0         # time of the last saved picture
         self.target = "ours"
         self.recording = None        # class being recorded, or None
         self.last_class = None
@@ -111,8 +121,10 @@ class CaptureWindow:
     def save(self, img, cls):
         folder = TARGETS[self.target] / cls
         folder.mkdir(parents=True, exist_ok=True)
-        name = f"{cls}_{datetime.now():%Y%m%d_%H%M%S_%f}.png"
-        Image.fromarray(img).save(folder / name)     # the raw 160 x 120 picture, no box drawn
+        name = f"{self.prefix}{cls}_{datetime.now():%Y%m%d_%H%M%S_%f}.png"
+        # the 160 x 120 picture, no box drawn, everything outside the model's square grayed out
+        Image.fromarray(blank_outside_box(img, CROP)).save(folder / name)
+        self.last_save = time.perf_counter()
 
     # --------------------------------------------------------- live view
     def refresh(self):
@@ -122,7 +134,7 @@ class CaptureWindow:
         latest = self.camera.latest
         if latest is not None and latest[0] != self.shown:
             self.shown, img = latest
-            if self.recording:
+            if self.recording and time.perf_counter() - self.last_save >= MIN_SAVE_GAP_S:
                 self.save(img, self.recording)
                 self.update_labels()
             self.show(img)
@@ -158,17 +170,16 @@ class CaptureWindow:
 
 
 def main():
-    import ee105
     print("Connecting to the camera...")
     try:
-        cam = ee105.connect_camera()
-    except RuntimeError as e:
+        cam = open_camera()          # the board, or the webcam with --webcam / RPS_CAMERA=webcam
+    except (RuntimeError, ValueError) as e:
         print(f"Can't start: {e}")
         return
     camera = Camera(cam)
     camera.start()
     root = tk.Tk()
-    CaptureWindow(root, camera)
+    CaptureWindow(root, camera, prefix="webcam_" if isinstance(cam, Webcam) else "")
     try:
         root.mainloop()
     except KeyboardInterrupt:

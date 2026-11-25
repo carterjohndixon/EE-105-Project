@@ -65,7 +65,7 @@ def main():
     try:
         model.load_best()  # Load the best model (weights) for the camera
         model.open_camera()  # Connect to the camera (raises RuntimeError if not found)
-    except (RuntimeError, FileNotFoundError) as e:
+    except (RuntimeError, FileNotFoundError, ValueError) as e:
         print(f"Can't start the game: {e}")
         return
 

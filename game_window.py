@@ -6,7 +6,8 @@ Keys (click the window first):
   Space or Enter   play a round: countdown, then your gesture is read from the camera
   Q or Esc         quit
 
-Run:  python game_window.py        (the text version is still:  python main.py)
+Run:  python game_window.py            (EE 105 board camera)
+      python game_window.py --webcam   (the computer's webcam)
 
 NOTE: This file was generated with the help of AI to make the the visaulization of the game.
 """
@@ -29,6 +30,8 @@ CROP = 0.8                # the center square the model looks at (see model.pred
 COUNTDOWN = ["Rock...", "Paper...", "Scissors...", "Shoot!"]
 COUNTDOWN_MS = 1500        # time per countdown word (4 words = 3.2 s to get ready)
 HOLD_MS = 600             # after "Shoot!": time to make the gesture and hold still before pictures count
+PREDICT_EVERY_S = 0.1     # run the model at most 10 times per second (a webcam sends ~30 pictures/s;
+                          # the board's ~2.5 pictures/s are all predicted)
 
 GREEN, RED, GRAY, ORANGE = "#2e7d32", "#c62828", "#555555", "#e65100"
 
@@ -57,15 +60,21 @@ class CameraThread(threading.Thread):
         self.running = True
 
     def run(self):
+        label, p, last_prediction = None, None, 0.0
         try:
             while self.running:
                 img = self.cam.snap(160, 120)
-                label, p = model.predict_frame(self.net, self.kind, img)
+                now = time.perf_counter()
+                predicted = label is None or now - last_prediction >= PREDICT_EVERY_S
+                if predicted:                 # other pictures are shown with the last prediction
+                    label, p = model.predict_frame(self.net, self.kind, img)
+                    last_prediction = now
                 with self.lock:
                     self.count += 1
                     self.latest = (self.count, img, label, p)
-                    self.history.append((self.count, label, p))
-                    self.times.append(time.perf_counter())
+                    if predicted:             # only real predictions count in a round's vote
+                        self.history.append((self.count, label, p))
+                    self.times.append(now)
         except Exception as e:                # shown in the window instead of a silent stop
             self.error = e
 
@@ -188,9 +197,9 @@ def main():
     print("Loading the model and connecting to the camera...")
     try:
         kind, net = model.load_best()
-        import ee105
-        cam = ee105.connect_camera()
-    except (RuntimeError, FileNotFoundError) as e:
+        from webcam import open_camera
+        cam = open_camera()                  # the board, or the webcam with --webcam / RPS_CAMERA=webcam
+    except (RuntimeError, FileNotFoundError, ValueError) as e:
         print(f"Can't start the game: {e}")
         return
 
