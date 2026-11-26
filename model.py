@@ -315,8 +315,9 @@ def load_best(device="cpu"):
         kind = best_kind()
         weights = ROOT / "weights" / f"{kind}.pt"
         if not weights.exists():
-            raise FileNotFoundError(f"{weights} is missing. Download it from the weights-v1 release: "
-                                    "gh release download weights-v1 --dir weights")
+            raise FileNotFoundError(f"{weights} is missing. Download it from the weights-v2 release: "
+                                    "gh release download weights-v2 --repo carterjohndixon/EE-105-Project "
+                                    "--dir weights")
         _best = (kind, load(kind, weights, device))
         print(f"Using {kind} ({weights.name})")
     return _best
