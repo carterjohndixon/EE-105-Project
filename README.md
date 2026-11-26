@@ -1,21 +1,49 @@
 # EE 105 Project: Rock-Paper-Scissors CNN
 
-## Dataset
-
-The full image data is not stored in this repo. Download `data-zip.zip` from the
-[data-v1 release](https://github.com/carterjohndixon/EE-105-Project/releases/tag/data-v1)
-and unzip it at the repository root. That recreates `data/`:
-
-Data is from [here](https://www.kaggle.com/datasets/sanikamal/rock-paper-scissors-dataset?resource=download)
-
 ## How it works
 The user is prompted to do a gesture following: scissors, rock, paper. While being prompted for the gesture via camera, the computer runs a random number generator to pick a random gesture and then comapres it to the user to determine who wins.
 
+## Trained model weights
+
+The trained weights are not stored in git. Download them from the
+**[weights-v2 release](https://github.com/carterjohndixon/EE-105-Project/releases/tag/weights-v2)**
+(`mobilenet.pt` is the model the game uses, `cnn.pt` the small CNN it was compared with) into a `weights/` folder:
+
+**From the website (no tools needed):** open the
+[weights-v2 release page](https://github.com/carterjohndixon/EE-105-Project/releases/tag/weights-v2), click the
+file under **Assets** to download it, and move it into a folder named `weights` in the project
+(e.g. `weights/mobilenet.pt`). Direct links:
+[mobilenet.pt](https://github.com/carterjohndixon/EE-105-Project/releases/download/weights-v2/mobilenet.pt)
+(needed to play) ·
+[cnn.pt](https://github.com/carterjohndixon/EE-105-Project/releases/download/weights-v2/cnn.pt) (optional).
+
+**With the GitHub CLI** (`gh`), from the project folder:
+
 ```
-data/kaggle/{train,validation,test}/{rock,paper,scissors}/
-data/ours/{rock,paper,scissors,none}/
-data/test/{rock,paper,scissors,none}/
+gh release download weights-v2 --repo carterjohndixon/EE-105-Project --dir weights
 ```
+
+The older [weights-v1 release](https://github.com/carterjohndixon/EE-105-Project/releases/tag/weights-v1)
+holds the first model, trained on Kaggle pictures only.
+
+## Dataset
+
+The image data is not stored in this repo. The Kaggle part, from
+[this dataset](https://www.kaggle.com/datasets/sanikamal/rock-paper-scissors-dataset?resource=download),
+is in `data-zip.zip` in the [data-v1 release](https://github.com/carterjohndixon/EE-105-Project/releases/tag/data-v1):
+unzip it at the repository root to recreate `data/kaggle/`.
+
+```
+data/kaggle/{train,validation,test}/{rock,paper,scissors}/   Kaggle pictures (data-v1 release)
+data/ours/{rock,paper,scissors,none}/                       our own camera pictures, for training (private)
+data/test/{rock,paper,scissors,none}/                       our own camera pictures, for testing (private)
+```
+
+**Our own gesture pictures are private.** The pictures we captured ourselves with the board camera and a webcam
+(`data/ours`, `data/test`, taken with `capture.py`) are not a publicly available dataset and are not included in
+this repo or its releases; they were only uploaded to Google Colab for training. The `data/ours` and `data/test`
+folders in `data-zip.zip` are empty placeholders. The models trained on our pictures are public in the
+[weights-v2 release](https://github.com/carterjohndixon/EE-105-Project/releases/tag/weights-v2).
 
 ## Model
 
@@ -56,7 +84,8 @@ why the game uses transfer learning. Details and the full comparison: [Models/RE
 **In the game**, each round takes 3 camera pictures (about 1.2 s). A picture counts only if the model is at
 least 45% sure it shows a gesture, and at least 2 of the 3 pictures must agree; otherwise the player is asked to
 try again. `model.best_kind()` automatically picks the trained model with the best accuracy on our camera
-pictures. The trained weights (`weights/mobilenet.pt`) are not stored in git.
+pictures. The trained weights (`weights/mobilenet.pt`) are not stored in git: see
+[Trained model weights](#trained-model-weights).
 
 **Code:** the models, data loading and training are in [`model.py`](model.py); the training notebooks are in
 [`Models/`](Models/).
