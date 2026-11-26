@@ -1,29 +1,29 @@
 {
  "name": "Small CNN",
- "test_acc": 0.8306451612903226,
- "wrong": 63,
+ "test_acc": 0.8655913978494624,
+ "wrong": 50,
  "n_test": 372,
- "best_val_acc": 0.601078167115903,
+ "best_val_acc": 0.5700389105058365,
  "epochs": 30,
- "seconds_per_epoch": 24.887122480074563,
- "ms_per_image": 4.258595344085905,
+ "seconds_per_epoch": 31.25411473910014,
+ "ms_per_image": 3.3898778064517208,
  "params": 93636,
  "params_trained_at_start": 93636,
  "per_class": {
   "paper": {
-   "precision": 1.0,
-   "recall": 0.7580645161290323
+   "precision": 0.9745762711864406,
+   "recall": 0.9274193548387096
   },
   "rock": {
-   "precision": 0.7380952380952381,
+   "precision": 0.7251461988304093,
    "recall": 1.0
   },
   "scissors": {
-   "precision": 0.8272727272727273,
-   "recall": 0.7338709677419355
+   "precision": 1.0,
+   "recall": 0.6693548387096774
   }
  },
  "device": "cuda",
- "own_test_acc": 0.9267241379310345,
- "own_n_test": 232
+ "own_test_acc": 0.6751361161524501,
+ "own_n_test": 551
 }

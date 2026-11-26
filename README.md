@@ -36,8 +36,8 @@ for accuracy tables, training curves, confusion matrices and the conclusion.
 
 **Training** (in [`Models/MobileNet-model.ipynb`](Models/MobileNet-model.ipynb), on a Google Colab T4 GPU)
 
-- **Data:** 2,520 Kaggle training pictures plus 1,421 pictures from our own camera (taken with `capture.py`
-  in several rooms and lighting conditions), all converted to grayscale. Our pictures are used 3 times per epoch
+- **Data:** 2,520 Kaggle training pictures plus about 3,200 of our own pictures from the board camera and a
+  laptop webcam (taken with `capture.py` in several rooms, outdoors, day and night), all converted to grayscale. Our pictures are used 3 times per epoch
   because there are fewer of them, and they include the "none" class, which Kaggle does not have.
 - **Transfer learning:** the pretrained layers are frozen at first, so only the new classifier learns
   (about 164,000 of the model's 2.4 million parameters). After 4 epochs the last 2 blocks of MobileNetV2 are
@@ -45,13 +45,13 @@ for accuracy tables, training curves, confusion matrices and the conclusion.
 - **Augmentation:** every training picture is randomly cropped, rotated up to 30°, mirrored, and changed in
   brightness and contrast. Our camera pictures also get stronger brightness/contrast changes and some blur, so the
   model learns the hand shape rather than the lighting of the session in which a picture was taken.
-- **Settings:** 8 epochs, AdamW optimizer (learning rate 3e-4, weight decay 1e-4), cross-entropy loss with label
+- **Settings:** 12 epochs, AdamW optimizer (learning rate 3e-4, weight decay 1e-4), cross-entropy loss with label
   smoothing 0.1, learning rate halved when validation accuracy stops improving. The epoch with the best
   validation accuracy is kept.
 
-**Results:** 95.3% on 232 of our own camera pictures that were never used for training, and 86.6% on Kaggle's
-test set (rendered hands, which the game never sees). Details and the comparison with the small CNN:
-[Models/RESULTS.md](Models/RESULTS.md).
+**Results:** 95.6% on 551 of our own board and webcam pictures that were never used for training, and 96.2% on
+Kaggle's test set. A small CNN trained from scratch on the same data reaches only 67.5% on our pictures, which is
+why the game uses transfer learning. Details and the full comparison: [Models/RESULTS.md](Models/RESULTS.md).
 
 **In the game**, each round takes 3 camera pictures (about 1.2 s). A picture counts only if the model is at
 least 45% sure it shows a gesture, and at least 2 of the 3 pictures must agree; otherwise the player is asked to
