@@ -6,72 +6,74 @@ Our camera test: our own OV7675 pictures in `data/test` (never used for training
 
 | Model | Kaggle test | Wrong | Our camera test | Best val | Parameters | Trained at start | Epochs | s/epoch | ms/picture |
 |---|---|---|---|---|---|---|---|---|---|
-| Small CNN | **96.2%** | 14/372 | **92.7%** (232 pictures) | 86.6% | 93,636 | 93,636 | 30 | 21 (cuda) | 3.3 |
-| MobileNetV2 | **86.6%** | 50/372 | **95.3%** (232 pictures) | 93.9% | 2,388,356 | 164,484 | 8 | 52 (cuda) | 7.6 |
+| Small CNN | **83.1%** | 63/372 | **92.7%** (232 pictures) | 60.1% | 93,636 | 93,636 | 30 | 25 (cuda) | 4.3 |
+| MobileNetV2 | **87.6%** | 46/372 | **99.1%** (232 pictures) | 82.5% | 2,388,356 | 164,484 | 8 | 68 (cuda) | 6.2 |
 
 ## Per class (test set)
 
 | Model | Class | Precision | Recall |
 |---|---|---|---|
-| Small CNN | paper | 0.975 | 0.960 |
-| Small CNN | rock | 0.919 | 1.000 |
-| Small CNN | scissors | 1.000 | 0.927 |
-| MobileNetV2 | paper | 1.000 | 0.621 |
-| MobileNetV2 | rock | 0.992 | 0.976 |
-| MobileNetV2 | scissors | 0.717 | 1.000 |
+| Small CNN | paper | 1.000 | 0.758 |
+| Small CNN | rock | 0.738 | 1.000 |
+| Small CNN | scissors | 0.827 | 0.734 |
+| MobileNetV2 | paper | 0.988 | 0.661 |
+| MobileNetV2 | rock | 0.890 | 0.976 |
+| MobileNetV2 | scissors | 0.804 | 0.992 |
 
 ## Training curves, both models
 
-![Comparison](figures/comparison_curves.png?v=823c4619)
+![Comparison](figures/comparison_curves.png?v=d85fd786)
 
 ## Small CNN
 
-![Small CNN training curves](figures/cnn_training_curves.png?v=46b4f6fc)
+![Small CNN training curves](figures/cnn_training_curves.png?v=b686501f)
 
-![Small CNN confusion matrix](figures/cnn_confusion.png?v=4d8cb598)
+![Small CNN confusion matrix](figures/cnn_confusion.png?v=ac595b9c)
 
-![Small CNN mistakes](figures/cnn_mistakes.png?v=f516f1c8)
+![Small CNN mistakes](figures/cnn_mistakes.png?v=8b31051a)
 
-![Small CNN on our camera pictures](figures/cnn_own_confusion.png?v=189760fd)
+![Small CNN on our camera pictures](figures/cnn_own_confusion.png?v=9e7e2a64)
 
 ## MobileNetV2
 
-![MobileNetV2 training curves](figures/mobilenet_training_curves.png?v=8c2f3c3e)
+![MobileNetV2 training curves](figures/mobilenet_training_curves.png?v=d3d2fdf5)
 
-![MobileNetV2 confusion matrix](figures/mobilenet_confusion.png?v=4a36016d)
+![MobileNetV2 confusion matrix](figures/mobilenet_confusion.png?v=4ca8ad78)
 
-![MobileNetV2 mistakes](figures/mobilenet_mistakes.png?v=9af44969)
+![MobileNetV2 mistakes](figures/mobilenet_mistakes.png?v=4caf7566)
 
-![MobileNetV2 on our camera pictures](figures/mobilenet_own_confusion.png?v=be3cda12)
+![MobileNetV2 on our camera pictures](figures/mobilenet_own_confusion.png?v=8adff100)
 
 ## Conclusion
 
 We will use **MobileNetV2 (transfer learning)** for the game.
 
-- **Works on our camera:** trained on Kaggle plus 1,421 of our own OV7675 pictures from several rooms and
-  sessions (including a "none" class for when no hand is shown), MobileNetV2 scores **95.3% on 232 camera
-  pictures it never trained on**. Every "no hand" and paper picture was right; the mistakes were 9
-  scissors called paper and 2 rocks called "none".
+- **Works on our camera:** trained on Kaggle plus about 2,200 of our own OV7675 pictures from several rooms,
+  outdoors and at different times of day (including a "none" class for when no hand is shown), MobileNetV2
+  scores **99.1% on 232 camera pictures it never trained on**: only 2 scissors were called paper.
+- **It handles new places much better than the small CNN:** our validation pictures are the newest 15% of each
+  class, mostly from the newest places (outdoors and a lounge, with paper also shown edge-on). There MobileNetV2
+  reaches **82.5%** and was still improving after 8 epochs, while the small CNN reaches only **60.1%**. The CNN
+  even struggles to learn the training pictures (77% after 30 epochs): with 94k parameters learned from scratch it
+  cannot cover this many different scenes, while MobileNetV2 reuses shape features learned from ImageNet.
+- **Versus the small CNN on the camera test:** the small CNN scores **92.7%** (17 mistakes: 10 scissors called
+  paper, 6 paper called "none"), against MobileNetV2's 99.1% (2 mistakes).
 - **Our own pictures were necessary:** trained on Kaggle alone, the model guessed "paper" for almost
   everything the camera showed, including an empty scene. Kaggle's pictures are rendered hands on white
   backgrounds and have no "none" class.
 - **Lighting and sessions matter:** with pictures from only one session per room, the model learned each
-  session's lighting. It called 41 of 60 empty-room pictures from a different time of day "rock". Adding
-  those pictures to training and randomly varying brightness, contrast and blur made it more robust.
-- **Trade-off on Kaggle:** focusing on our camera lowered accuracy on Kaggle's rendered hands from 94.9%
-  to 86.6% (it now often calls Kaggle's paper "scissors"). The game only sees our camera, so we accept this.
-- **Versus the small CNN:** trained on the same data, the small CNN (trained from scratch, 94k parameters)
-  scores **92.7% on our camera pictures**, compared with MobileNetV2's 95.3%. It confuses scissors with paper
-  more often (14 vs 9 times) and calls 3 "no hand" pictures paper. MobileNetV2 also learns much faster thanks
-  to pretrained ImageNet features (about 90% validation accuracy after 2 epochs; the CNN needed 30 epochs).
-- **The small CNN improved most from the extra data:** with our pictures, stronger augmentation and 30 epochs,
-  its Kaggle accuracy rose from 88.4% to 96.2%, now above MobileNetV2's 86.6% there. The game only sees our
-  camera, where MobileNetV2 is better, so the game uses MobileNetV2.
-- **Both models confuse scissors with paper:** since both make the same mistake, it comes from the data rather
-  than the model; more varied scissors pictures are the most useful next step.
+  session's lighting. It called 41 of 60 empty-room pictures from a different time of day "rock". Pictures from
+  more places and times, plus random changes of brightness, contrast and blur, made it more robust.
+- **Trade-off on Kaggle:** focusing on our camera keeps Kaggle accuracy lower than a Kaggle-only model
+  (MobileNetV2 87.6% now, 94.9% trained on Kaggle alone; the small CNN dropped from 96.2% to 83.1% with the new
+  pictures). The game only sees our camera, so we accept this.
+- **Scissors vs paper is the hardest pair:** both models' remaining camera mistakes are mostly scissors called
+  paper, so more varied scissors pictures are the most useful next step.
 - **Fast enough:** a prediction takes about 6 ms on a T4 GPU and 28 ms on a laptop CPU, small next to the
   camera, which delivers a new picture about every 400 ms (2.5 per second).
 
-**Limitations:** the camera test set is small (232 pictures), comes from one person's hand, and partly
-from the same sessions as training pictures, so accuracy in a new room or with other people is likely
-lower. A fresh test set recorded in a separate session would give a more honest number.
+**Limitations:** the camera test set (232 pictures) comes from one person's hand and only from the earliest
+recording sessions, so the 99.1% does not cover the newer places; the 82.5% validation accuracy on the newest
+pictures is a more realistic estimate for a new room. A test set recorded in new places, and with other people's
+hands, would give a more honest number. The model has also never seen a face, so a face in the box (likely with a
+laptop webcam) can be mistaken for "rock".
