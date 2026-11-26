@@ -6,5 +6,12 @@
 
 # Model weights
 /weights/
-# Our camera pictures archive: attached to a GitHub Release
+# Our camera pictures archive: private, uploaded to Colab by hand (never on GitHub)
 /data-ours.zip
+
+# Python cache
+__pycache__/
+
+# Local webcam snapshots from python webcam.py
+webcam_test*.png
+webcame_test*.png
