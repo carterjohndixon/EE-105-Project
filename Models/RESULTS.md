@@ -7,7 +7,7 @@ Our camera test: our own OV7675 pictures in `data/test` (never used for training
 | Model | Kaggle test | Wrong | Our camera test | Best val | Parameters | Trained at start | Epochs | s/epoch | ms/picture |
 |---|---|---|---|---|---|---|---|---|---|
 | Small CNN | **83.1%** | 63/372 | **92.7%** (232 pictures) | 60.1% | 93,636 | 93,636 | 30 | 25 (cuda) | 4.3 |
-| MobileNetV2 | **87.6%** | 46/372 | **99.1%** (232 pictures) | 82.5% | 2,388,356 | 164,484 | 8 | 68 (cuda) | 6.2 |
+| MobileNetV2 | **96.2%** | 14/372 | **95.6%** (551 pictures) | 96.5% | 2,388,356 | 164,484 | 12 | 81 (cuda) | 7.5 |
 
 ## Per class (test set)
 
@@ -16,13 +16,13 @@ Our camera test: our own OV7675 pictures in `data/test` (never used for training
 | Small CNN | paper | 1.000 | 0.758 |
 | Small CNN | rock | 0.738 | 1.000 |
 | Small CNN | scissors | 0.827 | 0.734 |
-| MobileNetV2 | paper | 0.988 | 0.661 |
-| MobileNetV2 | rock | 0.890 | 0.976 |
-| MobileNetV2 | scissors | 0.804 | 0.992 |
+| MobileNetV2 | paper | 0.923 | 0.968 |
+| MobileNetV2 | rock | 0.992 | 1.000 |
+| MobileNetV2 | scissors | 0.974 | 0.919 |
 
 ## Training curves, both models
 
-![Comparison](figures/comparison_curves.png?v=d85fd786)
+![Comparison](figures/comparison_curves.png?v=cc99f43f)
 
 ## Small CNN
 
@@ -36,13 +36,13 @@ Our camera test: our own OV7675 pictures in `data/test` (never used for training
 
 ## MobileNetV2
 
-![MobileNetV2 training curves](figures/mobilenet_training_curves.png?v=d3d2fdf5)
+![MobileNetV2 training curves](figures/mobilenet_training_curves.png?v=dcfe2764)
 
-![MobileNetV2 confusion matrix](figures/mobilenet_confusion.png?v=4ca8ad78)
+![MobileNetV2 confusion matrix](figures/mobilenet_confusion.png?v=7f798e75)
 
-![MobileNetV2 mistakes](figures/mobilenet_mistakes.png?v=4caf7566)
+![MobileNetV2 mistakes](figures/mobilenet_mistakes.png?v=ea1a67e0)
 
-![MobileNetV2 on our camera pictures](figures/mobilenet_own_confusion.png?v=8adff100)
+![MobileNetV2 on our camera pictures](figures/mobilenet_own_confusion.png?v=1b9315d8)
 
 ## Conclusion
 
